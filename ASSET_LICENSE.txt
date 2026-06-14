@@ -1,0 +1,44 @@
+VRM Asset Source & License
+==========================
+
+File:            /tmp/vrm-asset/avatar.vrm
+Original name:   VRM1_Constraint_Twist_Sample.vrm
+Size:            10,776,032 bytes (~10.3 MB)
+SHA-256:         12c2b97e95e700783a6a550dc0eee2d7880aeedccef9ae67bc4c5a2f0f2631a2
+VRM spec:        VRM 1.0 (glTF binary; extensions: VRMC_vrm specVersion=1.0,
+                 VRMC_springBone, VRMC_node_constraint, VRMC_materials_mtoon)
+
+DOWNLOAD URL (exact):
+  https://raw.githubusercontent.com/pixiv/three-vrm/dev/packages/three-vrm/examples/models/VRM1_Constraint_Twist_Sample.vrm
+  (jsDelivr mirror also works:
+   https://cdn.jsdelivr.net/gh/pixiv/three-vrm@dev/packages/three-vrm/examples/models/VRM1_Constraint_Twist_Sample.vrm)
+
+Repository: https://github.com/pixiv/three-vrm  (official pixiv three-vrm)
+
+LICENSE
+-------
+1) Repository code/assets license: MIT License.
+   Copyright (c) 2019-2026 pixiv Inc.
+   Full text: https://raw.githubusercontent.com/pixiv/three-vrm/dev/LICENSE
+   (saved locally as /tmp/vrm-asset/REPO_LICENSE.txt)
+
+2) Embedded VRM 1.0 meta (authoritative for the avatar content itself):
+   authors:                        pixiv Inc.
+   copyrightInformation:           (c) 2022 pixiv Inc.
+   licenseUrl:                     https://vrm.dev/licenses/1.0/
+   avatarPermission:               everyone
+   commercialUsage:                corporation
+   creditNotation:                 unnecessary
+   allowRedistribution:            true
+   modification:                   allowModificationRedistribution
+   allowPoliticalOrReligiousUsage: true
+   allowAntisocialOrHateUsage:     false
+
+WHY SAFE FOR LOCAL DEV USE
+--------------------------
+This is the official sample model shipped in pixiv's own three-vrm repo under the
+MIT License, and its embedded VRM meta explicitly grants use by "everyone",
+commercial use, redistribution, and modification with credit unnecessary.
+There are no restrictions affecting a local rendering proof-of-concept.
+
+Retrieved: 2026-06-14

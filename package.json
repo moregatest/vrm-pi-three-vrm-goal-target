@@ -1,0 +1,30 @@
+{
+  "name": "vrm-pi-three-vrm-goal-target",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Real three-vrm browser runtime + VRM API/event bridge + Pi semantic VRM tools (proof-of-concept).",
+  "scripts": {
+    "api": "node server/vrm-api.mjs",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "proof:a": "node proof-a.mjs",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "dependencies": {
+    "@pixiv/three-vrm": "3.5.3",
+    "@tauri-apps/api": "^2.11.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "three": "0.184.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.2",
+    "playwright": "1.60.0",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  }
+}

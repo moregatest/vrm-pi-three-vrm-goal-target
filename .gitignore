@@ -1,0 +1,22 @@
+# dependencies & build output
+node_modules/
+dist/
+src-tauri/target/
+
+# regenerable handless run scaffolding (evidence kept in proofs/handless-evidence/)
+proofs/handless-run/
+
+# transient proof artifacts at repo root (stable copies live in docs/images/)
+/proof-a-screenshot.png
+/proof-c-screenshot.png
+/proof-d-screenshot.png
+/events.proof-a.jsonl
+/events.proof-b.jsonl
+/events.proof-d.jsonl
+/events.handless.jsonl
+/proof-b-output.txt
+/proof-b-pi-stdout.jsonl
+/proof-b-pi-stdout.jsonl.stderr.txt
+
+# macOS
+.DS_Store

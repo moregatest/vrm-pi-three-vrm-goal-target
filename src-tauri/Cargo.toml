@@ -1,0 +1,19 @@
+[package]
+name = "vrm-pet"
+version = "0.1.0"
+edition = "2021"
+description = "Standalone autonomous VRM desktop pet (system-aware, rules-driven)"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sysinfo = "0.32"
+chrono = "0.4"
+
+[[bin]]
+name = "vrm-pet"
+path = "src/main.rs"

@@ -1,0 +1,12 @@
+{
+  "name": "vrm-character-0",
+  "turns_run": 1,
+  "over_asking": true,
+  "errored": false,
+  "provenance": {
+    "session_id": "vrm-greet-0001",
+    "template_version": "1.0.0",
+    "operator": "goal@example.com",
+    "project": "vrm-character"
+  }
+}

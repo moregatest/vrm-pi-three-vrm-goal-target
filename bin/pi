@@ -1,0 +1,15 @@
+#!/bin/sh
+# Portable `pi` wrapper for the handless-termal round.
+# handless-termal's runner invokes the bare command `pi`; by putting this dir on
+# PATH, that call loads the VRM extension + the restricted semantic tool surface
+# + the OpenRouter provider. (The local Qwen drives the agent fine in pi's text
+# mode — see Proof B — but cannot complete pi's `--mode json`, which handless
+# forces; so the handless round uses OpenRouter deepseek-v4-flash.)
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+exec /opt/homebrew/bin/pi \
+  -e "$HERE/pi/vrm-tools.ts" \
+  --no-builtin-tools \
+  -t vrm_say,vrm_expression,vrm_motion,vrm_reset \
+  --provider openrouter \
+  --thinking off \
+  "$@"

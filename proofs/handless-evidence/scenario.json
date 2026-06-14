@@ -1,0 +1,16 @@
+{
+  "name": "vrm-character-0",
+  "opening": "Please greet me happily and give me a wave.",
+  "operator_script": [],
+  "reference_trajectory": [
+    "Aria lights up, sets a happy face, raises her hand in a big wave, and says hello —\nall performed through the VRM tools: vrm_expression({\"emotion\":\"happy\"}),\nvrm_motion({\"motion\":\"wave\"}), then vrm_say({\"text\":\"Hi there! So happy to see you!\"})."
+  ],
+  "rubric_dimensions": [],
+  "expected_behaviours": [],
+  "provenance": {
+    "session_id": "vrm-greet-0001",
+    "template_version": "1.0.0",
+    "operator": "goal@example.com",
+    "project": "vrm-character"
+  }
+}
