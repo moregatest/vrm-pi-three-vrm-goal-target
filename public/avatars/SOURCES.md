@@ -47,4 +47,26 @@ embedded VRM metadata (the embedded meta is authoritative for the model content)
 
 ---
 
+## `user-avatar.vrm`
+
+- **Model name:** Celeste (embedded VRM 1.0 meta `name`)
+- **Author(s):** JustAPal and SR (embedded VRM 1.0 meta `authors`)
+- **Model version:** Final V2 (embedded VRM 1.0 meta `version`)
+- **Source:** Provided by the user via Google Drive (user-supplied, not a public sample).
+  - Google Drive file ID: `1EUULcYh-UwpxsJxmWc2ZykVYADplQSM_`
+  - Shared link: https://drive.google.com/file/d/1EUULcYh-UwpxsJxmWc2ZykVYADplQSM_/view
+  - Downloaded with `gdown` on 2026-06-14.
+- **License:** Embedded VRM 1.0 meta `licenseUrl` = https://vrm.dev/licenses/1.0/
+  (consult the model's embedded VRMC_vrm meta for the specific usage permissions
+  before any redistribution / commercial use; this is a user-supplied model).
+- **VRM version:** VRM 1.0 (extensions: VRMC_vrm specVersion=1.0, VRMC_springBone,
+  VRMC_materials_mtoon, KHR_texture_transform, KHR_materials_unlit)
+- **Size:** 33,063,168 bytes (~32 MB)
+- **SHA-256:** `5a4cdf8a01e57062a31cd0e526d042f3c8456487a2ff580f778fc0af77d24259`
+- **Validity checks:** magic bytes `67 6C 54 46` ("glTF"), glTF container version 2;
+  declared glTF length (33,063,168) matches file size exactly; first chunk is JSON;
+  `VRMC_vrm` extension present with specVersion 1.0. Not an HTML/permission page.
+
+---
+
 _Last updated: 2026-06-14_

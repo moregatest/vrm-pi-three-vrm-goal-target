@@ -10,13 +10,21 @@ proofs/handless-run/
 /proof-a-screenshot.png
 /proof-c-screenshot.png
 /proof-d-screenshot.png
+/proof-e-screenshot.png
+/proof-f-screenshot.png
 /events.proof-a.jsonl
 /events.proof-b.jsonl
 /events.proof-d.jsonl
+/events.proof-e.jsonl
+/events.proof-f.jsonl
 /events.handless.jsonl
 /proof-b-output.txt
 /proof-b-pi-stdout.jsonl
 /proof-b-pi-stdout.jsonl.stderr.txt
+
+# user-provided default avatar — unclear redistribution license, NOT published
+# (app falls back to default.vrm when absent; add your own to run with it locally)
+public/avatars/user-avatar.vrm
 
 # macOS
 .DS_Store

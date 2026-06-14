@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "avatarId": "default",
+  "defaultIdle": "idle_breath_normal",
+  "requirements": { "minRealVrmaClips": 1, "allowProceduralFallback": true },
+  "clips": [
+    {
+      "id": "gesture_wave_01",
+      "source": { "kind": "vrma", "file": "/vrma/gesture_wave_01.vrma" },
+      "category": "gesture",
+      "tags": ["wave", "greeting", "happy"],
+      "emotion": "happy",
+      "intensity": { "min": 0.3, "max": 1 },
+      "durationMs": 3000,
+      "loop": false,
+      "priority": 50,
+      "bodyParts": ["rightArm", "rightHand", "head"],
+      "blend": { "inMs": 250, "outMs": 500 },
+      "cooldownMs": 1500,
+      "runtimeHints": { "lookAtMode": "camera", "expression": "happy", "expressionWeight": 0.6 }
+    },
+    { "id": "idle_breath_normal", "source": { "kind": "procedural", "generator": "idle" }, "category": "idle", "tags": ["idle", "breath"], "emotion": "neutral", "durationMs": 3600, "loop": true, "priority": 10 },
+    { "id": "idle_happy_sway_01", "source": { "kind": "procedural", "generator": "idle", "params": { "periodMs": 2800 } }, "category": "idle", "tags": ["idle", "sway"], "emotion": "happy", "durationMs": 4200, "loop": true, "priority": 10 },
+    { "id": "idle_look_around_01", "source": { "kind": "procedural", "generator": "gaze" }, "category": "idle", "tags": ["idle", "look"], "emotion": "neutral", "durationMs": 5000, "loop": true, "priority": 10 },
+    { "id": "gesture_nod_01", "source": { "kind": "procedural", "generator": "nod" }, "category": "gesture", "tags": ["nod", "yes"], "emotion": "neutral", "durationMs": 1500, "loop": false, "priority": 40, "blend": { "inMs": 120, "outMs": 300 } },
+    { "id": "gesture_think_01", "source": { "kind": "procedural", "generator": "thinking" }, "category": "thinking", "tags": ["think"], "emotion": "neutral", "durationMs": 3600, "loop": false, "priority": 40 },
+    { "id": "reaction_surprised_01", "source": { "kind": "procedural", "generator": "surprised_recoil" }, "category": "reaction", "tags": ["surprised"], "emotion": "surprised", "durationMs": 1300, "loop": false, "priority": 70 }
+  ]
+}

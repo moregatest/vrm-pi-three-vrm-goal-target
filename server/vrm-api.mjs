@@ -65,6 +65,20 @@ app.post('/vrm/load', (req, res) => {
   const ev = record('load', { url });
   res.json({ ok: true, event: ev });
 });
+app.post('/vrm/action', (req, res) => {
+  const b = req.body || {};
+  const ev = record('action', {
+    name: String(b.name ?? ''),
+    intensity: b.intensity, durationMs: b.durationMs, loop: b.loop,
+    priority: b.priority, blendInMs: b.blendInMs, blendOutMs: b.blendOutMs,
+  });
+  res.json({ ok: true, event: ev });
+});
+app.post('/vrm/mood', (req, res) => {
+  const b = req.body || {};
+  const ev = record('mood', { mood: String(b.mood ?? ''), strength: b.strength, decayMs: b.decayMs });
+  res.json({ ok: true, event: ev });
+});
 app.get('/vrm/avatars', (req, res) => {
   let names = [];
   try { names = fs.readdirSync(AVATARS_DIR).filter((n) => n.toLowerCase().endsWith('.vrm')).sort(); } catch {}

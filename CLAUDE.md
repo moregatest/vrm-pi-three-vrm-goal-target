@@ -11,7 +11,9 @@ A **real** browser [three-vrm](https://github.com/pixiv/three-vrm) runtime for a
 
 Both modes share one frontend and support **runtime VRM swapping**.
 
-It is verified end-to-end (real WebGL2 render + pixel checks, Rust unit tests, a real Pi/agent round) — see **Verification**.
+Between the events and the rig sits a **continuous character control layer** (`src/motion/`) that keeps the avatar *alive*: idle breathing/sway/head-micro-motion, natural blink, gaze, affect-damped (non-snapping) expressions, a pseudo-viseme mouth, and a blended action scheduler — so discrete semantic events become continuous, layered motion.
+
+It is verified end-to-end (real WebGL2 render + pixel checks, an aliveness proof, Rust unit tests, a real Pi/agent round) — see **Verification**.
 
 ## Quick start
 
@@ -43,22 +45,46 @@ The frontend picks the transport at boot: if it is inside the Tauri webview (`wi
 
 | Path | Role |
 |------|------|
-| `src/main.ts` | three-vrm runtime: render loop, expression / motion (`wave`, `nod`) / speech, `loadVrm()` runtime swap, SSE **and** Tauri transports, avatar dropdown, DOM state on `window.__VRM_STATE__` + `#vrm-state`. |
-| `server/vrm-api.mjs` | Express bridge: `POST /vrm/{say,expression,motion,reset,load}`, `GET /vrm/{events (SSE), avatars, health}`; appends every call to a JSONL log. |
+| `src/main.ts` | **Slim** entry: renderer/scene/camera, `loadVrm()` runtime swap (head-bone framing), SSE **and** Tauri transports, avatar dropdown, base DOM state. Delegates all animation to the MotionController. |
+| `src/motion/MotionController.ts` | The **continuous character control layer** + **VRMA mixer**: idle (breathing/sway/head-micro), face (affect→expression, damped), blink, gaze, pseudo-viseme mouth, blended ActionScheduler, AND a `THREE.AnimationMixer` that plays real `.vrma` clips (procedural kept as an additive micro-overlay during a clip). `handleEvent()`+`update(dt,now)`+`getState()` (metrics inc. `realVrmaLoaded/realVrmaPlayed/proceduralActive/lastClipSource`) → `window.__VRM_STATE__`. |
+| `src/motion/actions.ts` | Procedural action presets (wave, happy_wave, nod, thinking, surprised_recoil, sad_slump, sleepy_relax) as additive bone-offset + expression generators. |
+| `src/motion/clips.ts` | VRMA performance layer: `ClipRegistry` + intent **selector** over the `vrma`/`procedural` manifest (`public/vrma/clips.json`), with cooldown + anti-repeat. Pure logic. |
+| `public/vrma/` | `clips.json` manifest + `gesture_wave_01.vrma` (real **MIT** pixiv clip — the verification anchor) + `SOURCES.md`. |
+| `server/vrm-api.mjs` | Express bridge: `POST /vrm/{say,expression,motion,reset,load,action,mood}`, `GET /vrm/{events (SSE), avatars, health}`; appends every call to a JSONL log. |
 | `pi/AGENTS.md` | The **Aria** character + rules telling Pi to *use the tools*, not narrate. |
-| `pi/vrm-tools.ts` | pi extension: 4 semantic tools `vrm_say` / `vrm_expression` / `vrm_motion` / `vrm_reset` → POST to the API. Loaded with `pi -e pi/vrm-tools.ts --no-builtin-tools -t vrm_say,vrm_expression,vrm_motion,vrm_reset`. No shell / raw bones exposed. |
+| `pi/vrm-tools.ts` | pi extension: semantic tools `vrm_say` / `vrm_expression` / `vrm_motion` / `vrm_reset` / `vrm_action` / `vrm_mood` → POST to the API. No shell / raw bones exposed. |
 | `src-tauri/src/rules.rs` | **Pure, unit-tested** rules engine: `decide(SystemState, &mut RuleMemory) -> Vec<VrmAction>` with cooldown / hysteresis / rising-edge. Edit this to change autonomous behavior. |
 | `src-tauri/src/sensors.rs` | CPU % + memory % (`sysinfo`), battery level/charging (`pmset`), local clock. |
 | `src-tauri/src/main.rs` | Tauri app: 2 s tick loop emits `vrm-event`; commands `list_avatars` / `load_avatar`. |
 | `public/avatars/*.vrm` | Swappable avatars (+ `SOURCES.md` with per-file licenses). |
 | `bin/pi` | Wrapper that drives the **handless** round via OpenRouter (see Model notes). |
-| `proof-{a,b,c,d}.mjs` | Verification harnesses (see below). |
+| `proof-{a,b,c,d,e}.mjs` | Verification harnesses (see below). |
 
 ## Avatars — add & swap
 
 Drop a `.vrm` into `public/avatars/`; it appears in the dropdown automatically (`list_avatars` in Tauri, `GET /vrm/avatars` in the browser). Swap at runtime via the dropdown, `?vrm=<name>`, `POST /vrm/load {"name":"x.vrm"}`, or Tauri `load_avatar(name)`.
 
-**Facing:** the VRM 1.0 sample faces +Z (toward the camera); VRM 0.x faces −Z, so `main.ts` flips VRM0 models 180°. The relax-pose (`relaxArms`) is tuned for the default avatar; other rigs may rest differently (cosmetic only).
+**Default avatar:** `public/avatars/user-avatar.vrm` ("Celeste", user-provided). **Facing:** VRM 1.0 faces +Z (toward the camera); VRM 0.x faces −Z, so `main.ts` flips VRM0 180°. **Framing** aims at the head bone (robust across models). The rest-pose lives in `MotionController`; other rigs may rest differently (cosmetic).
+
+## Motion control layer (`src/motion/`)
+
+Discrete events never touch bones directly — `MotionController` turns them into **continuous, layered, blended** motion:
+
+- **idle** (always on): breathing (spine/chest sine), body sway, head micro-motion (pseudo-noise).
+- **face**: an affect model (`valence`/`arousal`, decays → emotional residue) + explicit overrides → expression *targets*, **damped** each frame (no snapping; expressions stack).
+- **blink**: natural 1.4–4.8 s timing (+ occasional double-blink), fast damped close/open.
+- **gaze**: idle random targets / look-forward while speaking / follow the mouse in the browser.
+- **mouth**: `say(text)` → pseudo-viseme timeline (aa/ih/ee/oh/ou + close on punctuation), smoothed.
+- **ActionScheduler** (`actions.ts`): named actions play with **blend-in/out**, intensity, priority; same-name cross-fades, different actions stack.
+
+New semantic events/tools (still no raw bones): `POST /vrm/action {name,intensity?,durationMs?,…}` → `vrm_action`; `POST /vrm/mood {mood,strength?,decayMs?}` → `vrm_mood`.
+
+### VRMA performance clip layer (built)
+
+Hybrid, manifest-driven: each clip in `public/vrma/clips.json` is `source: { kind:'vrma', file } | { kind:'procedural', generator }`. The agent emits a semantic intent (`wave`, `nod`, `think`, …); the **selector** (`clips.ts`) picks a clip by category/emotion/intensity (cooldown + anti-repeat). Real `.vrma` clips play through `@pixiv/three-vrm-animation` `createVRMAnimationClip` + a `THREE.AnimationMixer`; while a clip plays, the procedural layer continues as an **additive micro-overlay** (breathing/blink/gaze) so the avatar never freezes, and the torso is kept upright/forward so a generic clip's arm motion reads as a clean gesture. If a requested VRMA isn't loaded, it falls back to a loaded VRMA (logged) or a procedural action.
+
+- **Asset reality:** the only clearly-permissive `.vrma` is pixiv's MIT sample (`gesture_wave_01.vrma`) — used as the *anchor* that proves the pipeline. Everyday liveliness is procedural (per the design: "real VRMA = signature/anchor; procedural = daily 靈動"). Drop a polished wave `.vrma` + manifest entry to upgrade — no code change.
+- **Runtime state** (for proofs): `realVrmaLoaded`, `realVrmaPlayed`, `proceduralActive`, `lastClipSource`, plus a `clientLog` of intent/clip events.
 
 ## Rules engine (standalone autopilot)
 
@@ -86,11 +112,13 @@ Defined in `src-tauri/src/rules.rs`; only fires on change / rising edge so it ne
 node proof-a.mjs                                   # render: direct API → real-GPU browser, pixel check, screenshot
 node proof-b.mjs                                   # local-Qwen agent → tools → events.proof-b.jsonl (happy/wave/say)
 bash proofs/setup-handless.sh && node proof-c.mjs  # handless-termal ht run-round → agent → browser E2E
-node proof-d.mjs                                   # runtime VRM swap (default → sendagaya), still renders
+node proof-d.mjs                                   # runtime VRM swap, still renders
+node proof-e.mjs                                   # ALIVENESS: idle micro-motion, blink, expression ramp, action blend, viseme mouth
+node proof-f.mjs                                   # VRMA LAYER: real .vrma loaded+played, >=3 procedural, idle-before-event, agent wave→vrma
 ( cd src-tauri && cargo test )                     # rules-engine unit tests (5)
 ```
 
-Artifacts: `proof-a-screenshot.png`, `proof-c-screenshot.png`, `proof-d-screenshot.png`, `events.*.jsonl`, and preserved handless evidence in `proofs/handless-evidence/`.
+Artifacts: `proof-{a,c,d,e}-screenshot.png`, `events.*.jsonl`, and preserved handless evidence in `proofs/handless-evidence/`.
 
 ## Tauri / Rust
 

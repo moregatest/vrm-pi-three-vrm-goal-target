@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@pixiv/three-vrm": "3.5.3",
+    "@pixiv/three-vrm-animation": "^3.5.3",
     "@tauri-apps/api": "^2.11.0",
     "cors": "^2.8.5",
     "express": "^4.21.2",

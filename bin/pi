@@ -9,7 +9,7 @@ HERE=$(cd "$(dirname "$0")/.." && pwd)
 exec /opt/homebrew/bin/pi \
   -e "$HERE/pi/vrm-tools.ts" \
   --no-builtin-tools \
-  -t vrm_say,vrm_expression,vrm_motion,vrm_reset \
+  -t vrm_say,vrm_expression,vrm_motion,vrm_reset,vrm_action,vrm_mood \
   --provider openrouter \
   --thinking off \
   "$@"

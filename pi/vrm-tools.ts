@@ -97,4 +97,48 @@ export default function (pi: ExtensionAPI) {
       };
     },
   });
+
+  pi.registerTool({
+    name: "vrm_action",
+    label: "VRM Action",
+    description: "Play a named, blendable character action (gesture/pose) on the avatar, with optional intensity and duration. Actions blend in/out and can overlap with idle life.",
+    promptSnippet: "Play a named character action on the VRM avatar",
+    parameters: Type.Object({
+      name: StringEnum(
+        ["wave", "happy_wave", "nod", "small_nod", "thinking", "surprised_recoil", "sad_slump", "sleepy_relax"] as const,
+        { description: "Which action to play" },
+      ),
+      intensity: Type.Optional(Type.Number({ description: "0..1 strength", minimum: 0, maximum: 1 })),
+      durationMs: Type.Optional(Type.Number({ description: "Override the action's duration, in ms" })),
+    }),
+    async execute(_id, params) {
+      const out = await postJson("/vrm/action", params);
+      return {
+        content: [{ type: "text", text: `Playing action ${params.name}` }],
+        details: { tool: "vrm_action", request: params, response: out },
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "vrm_mood",
+    label: "VRM Mood",
+    description: "Set the avatar's emotional mood (affect). It biases expressions over time and decays naturally, so the face doesn't snap between states.",
+    promptSnippet: "Set the VRM avatar's mood",
+    parameters: Type.Object({
+      mood: StringEnum(
+        ["happy", "curious", "sad", "angry", "calm", "relaxed", "sleepy", "surprised"] as const,
+        { description: "Mood to set" },
+      ),
+      strength: Type.Optional(Type.Number({ description: "0..1", minimum: 0, maximum: 1 })),
+      decayMs: Type.Optional(Type.Number({ description: "How long the mood lingers, in ms" })),
+    }),
+    async execute(_id, params) {
+      const out = await postJson("/vrm/mood", params);
+      return {
+        content: [{ type: "text", text: `Mood set to ${params.mood}` }],
+        details: { tool: "vrm_mood", request: params, response: out },
+      };
+    },
+  });
 }
