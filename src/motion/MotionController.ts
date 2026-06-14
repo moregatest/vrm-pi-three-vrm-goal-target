@@ -173,8 +173,15 @@ export class MotionController {
       intensity: typeof opts.intensity === 'number' ? opts.intensity : 0.7,
     };
     const now = performance.now();
-    const clip = this.registry?.select(intent, now, (id) => !!this.vrmaThreeClips[id]) ?? null;
     this.log('intent_received', { intent });
+    let clip = this.registry?.select(intent, now, (id) => !!this.vrmaThreeClips[id]) ?? null;
+    // ensure a name-matching, loaded VRMA wins for this gesture (the clean path,
+    // rather than falling through to the "any loaded VRMA" safety net below)
+    if (!clip || clip.source.kind !== 'vrma') {
+      const m = (this.registry?.vrma() || []).find((c) =>
+        this.vrmaThreeClips[c.id] && (c.id.toLowerCase().includes(g) || (c.tags || []).map((t) => t.toLowerCase()).includes(g)));
+      if (m) clip = m;
+    }
 
     if (clip && clip.source.kind === 'vrma' && this.vrmaThreeClips[clip.id]) {
       this.log('clip_selected', { clipId: clip.id, source: 'vrma' });
