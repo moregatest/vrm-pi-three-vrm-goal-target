@@ -32,15 +32,17 @@ scene.add(key);
 const previewState: any = { ready: false, error: null, durationSec: 0, vrm: VRM_URL, vrma: VRMA_URL };
 (window as any).__preview = previewState;
 
+const ZOOM = Number(q.get('zoom') || 1);                       // <1 = closer (e.g. inspect hands)
+const AIM = q.get('aim') != null ? Number(q.get('aim')) : 0.56; // vertical aim, fraction of height
 function frameAvatar(vrm: any): void {
   vrm.scene.updateWorldMatrix(true, true);
   const box = new THREE.Box3().setFromObject(vrm.scene);
   const size = new THREE.Vector3(); box.getSize(size);
   const h = (Number.isFinite(size.y) && size.y > 0.2 && size.y < 5) ? size.y : 1.4;
   // frame the whole upper body + head with margin (dance uses arms/torso, not just face)
-  const aimY = box.min.y + h * 0.56;
-  const dist = h * 1.15 + 0.4;
-  camera.position.set(0, box.min.y + h * 0.64, dist);
+  const aimY = box.min.y + h * AIM;
+  const dist = (h * 1.15 + 0.4) * ZOOM;
+  camera.position.set(0, box.min.y + h * (AIM + 0.08), dist);
   camera.near = 0.05; camera.far = Math.max(20, dist * 12);
   camera.lookAt(0, aimY, 0);
   camera.updateProjectionMatrix();

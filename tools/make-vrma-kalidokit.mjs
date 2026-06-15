@@ -1,22 +1,24 @@
 // make-vrma-kalidokit.mjs — higher-quality video → VRMA using Kalidokit's
-// purpose-built MediaPipe→VRM solver (proper kinematics + limb twist + legs +
-// wrist orientation) instead of the naive shortest-arc retarget. Reads a pose dump
-// with BOTH world-3D and image-2D landmarks (tools/extract_pose.py) and writes a
+// purpose-built MediaPipe→VRM solver: proper kinematics + limb twist + legs +
+// wrists + FINGERS (Kalidokit.Hand). Reads a pose dump with world-3D + image-2D
+// pose landmarks AND per-frame hand landmarks (tools/extract_pose.py), writes a
 // valid VRMC_vrm_animation .vrma (same GLB writer as the other engines).
 //
 // Usage: node tools/make-vrma-kalidokit.mjs <pose.json> <out.vrma> [flags]
 //   --start N --len N   pose segment (default 0 .. all)
 //   --smooth A          EMA on output quats 0..1 (default 0.3; higher = smoother)
 //   --mirror            un-mirror (swap L/R + flip yaw/roll) for third-person video
-//   --flat-hips         zero hips yaw (keep facing forward; fixes noisy spins)
+//   --flat-hips         zero hips yaw (keep facing forward)
+//   --face-flip         rotate whole avatar 180° about Y (fix back-facing)
 //   --no-legs           skip legs
+//   --no-fingers        skip fingers (even if hand data present)
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 const require = createRequire(import.meta.url);
 const K = require('kalidokit/dist/kalidokit.umd.js');   // ESM build has dir-imports; UMD works in Node
 
 function parse(argv) {
-  const a = { pose: argv[0], out: argv[1], start: 0, len: 0, smooth: 0.3, mirror: false, flatHips: false, faceFlip: false, legs: true, fps: 30 };
+  const a = { pose: argv[0], out: argv[1], start: 0, len: 0, smooth: 0.3, mirror: false, flatHips: false, faceFlip: false, legs: true, fingers: true, fps: 30 };
   for (let i = 2; i < argv.length; i++) {
     const k = argv[i];
     if (k === '--start') a.start = Number(argv[++i]);
@@ -24,14 +26,29 @@ function parse(argv) {
     else if (k === '--smooth') a.smooth = Number(argv[++i]);
     else if (k === '--mirror') a.mirror = true;
     else if (k === '--flat-hips') a.flatHips = true;
-    else if (k === '--face-flip') a.faceFlip = true;          // rotate whole avatar 180° about Y (fix back-facing)
+    else if (k === '--face-flip') a.faceFlip = true;
     else if (k === '--no-legs') a.legs = false;
+    else if (k === '--no-fingers') a.fingers = false;
     else if (!a.pose) a.pose = k; else if (!a.out) a.out = k;
   }
   if (!a.pose || !a.out) { console.error('usage: node tools/make-vrma-kalidokit.mjs <pose.json> <out.vrma> [flags]'); process.exit(2); }
   return a;
 }
 const A = parse(process.argv.slice(2));
+
+const cap = (s) => s[0].toUpperCase() + s.slice(1);
+function fingerBones(side) {
+  const S = side === 'left' ? 1 : -1, hand = side + 'Hand', o = [];
+  o.push([cap(side) + 'ThumbMetacarpal', side + 'ThumbMetacarpal', hand, [S * 0.018, -0.01, 0.02]]);
+  o.push([cap(side) + 'ThumbProximal', side + 'ThumbProximal', side + 'ThumbMetacarpal', [S * 0.015, 0, 0.012]]);
+  o.push([cap(side) + 'ThumbDistal', side + 'ThumbDistal', side + 'ThumbProximal', [S * 0.012, 0, 0.012]]);
+  for (const f of ['Index', 'Middle', 'Ring', 'Little']) {
+    o.push([cap(side) + f + 'Proximal', side + f + 'Proximal', hand, [S * 0.04, 0, 0]]);
+    o.push([cap(side) + f + 'Intermediate', side + f + 'Intermediate', side + f + 'Proximal', [S * 0.025, 0, 0]]);
+    o.push([cap(side) + f + 'Distal', side + f + 'Distal', side + f + 'Intermediate', [S * 0.018, 0, 0]]);
+  }
+  return o;
+}
 
 const SKEL = [
   ['Hips', 'hips', null, [0, 1.0, 0]],
@@ -51,6 +68,7 @@ const SKEL = [
     ['RightUpperLeg', 'rightUpperLeg', 'hips', [-0.09, -0.06, 0]],
     ['RightLowerLeg', 'rightLowerLeg', 'rightUpperLeg', [0, -0.40, 0]],
   ] : []),
+  ...(A.fingers ? [...fingerBones('left'), ...fingerBones('right')] : []),
 ];
 
 // three.js Euler(XYZ) → quaternion [x,y,z,w]
@@ -65,10 +83,10 @@ function nlerp(a, b, t) {
   const r = [a[0] + (b[0] * s - a[0]) * t, a[1] + (b[1] * s - a[1]) * t, a[2] + (b[2] * s - a[2]) * t, a[3] + (b[3] * s - a[3]) * t];
   const l = Math.hypot(...r) || 1; return r.map((v) => v / l);
 }
-const mir = (e) => (e ? { x: e.x, y: -e.y, z: -e.z } : e);   // mirror a rotation across the sagittal plane
+const mir = (e) => (e ? { x: e.x, y: -e.y, z: -e.z } : e);
 
 const data = JSON.parse(fs.readFileSync(A.pose, 'utf8'));
-const w3 = data.landmarks, i2 = data.landmarks2d || data.landmarks;
+const w3 = data.landmarks, i2 = data.landmarks2d || data.landmarks, hd = data.hands || null;
 const len = A.len > 0 ? A.len : w3.length - A.start;
 const idxs = [];
 for (let i = A.start; i < Math.min(A.start + len, w3.length); i++) if (w3[i] && w3[i].some((p) => p[3] > 0)) idxs.push(i);
@@ -76,12 +94,28 @@ const nFrames = idxs.length;
 if (nFrames < 5) { console.error('not enough detected frames'); process.exit(1); }
 
 const toLM = (arr) => arr.map((p) => ({ x: p[0], y: p[1], z: p[2], visibility: p[3] }));
+const useFingers = A.fingers && hd;
+let handFrames = 0;
+
+function solveHand(m, lm, side) {           // side = target VRM side ('left'|'right')
+  let hr; try { hr = K.Hand.solve(lm.map((p) => ({ x: p[0], y: p[1], z: p[2] })), side === 'left' ? 'Left' : 'Right'); } catch { return; }
+  if (!hr) return;
+  const P = side === 'left' ? 'Left' : 'Right';
+  m[side + 'ThumbMetacarpal'] = hr[P + 'ThumbProximal'];     // Kalidokit thumb(P,I,D) → VRM thumb(Metacarpal,Proximal,Distal)
+  m[side + 'ThumbProximal'] = hr[P + 'ThumbIntermediate'];
+  m[side + 'ThumbDistal'] = hr[P + 'ThumbDistal'];
+  for (const f of ['Index', 'Middle', 'Ring', 'Little']) {
+    m[side + f + 'Proximal'] = hr[P + f + 'Proximal'];
+    m[side + f + 'Intermediate'] = hr[P + f + 'Intermediate'];
+    m[side + f + 'Distal'] = hr[P + f + 'Distal'];
+  }
+}
+
 const tracks = SKEL.map(() => new Float32Array(nFrames * 4));
 const prev = {};
 idxs.forEach((fi, k) => {
   let rig;
   try { rig = K.Pose.solve(toLM(w3[fi]), toLM(i2[fi]), { runtime: 'mediapipe', enableLegs: A.legs }); } catch { rig = null; }
-  // map Kalidokit rig → VRM humanoid bone euler
   let m = rig ? {
     hips: A.flatHips ? { x: rig.Hips.rotation.x, y: 0, z: rig.Hips.rotation.z } : rig.Hips.rotation,
     spine: rig.Spine,
@@ -97,9 +131,19 @@ idxs.forEach((fi, k) => {
     leftUpperLeg: mir(m.rightUpperLeg), leftLowerLeg: mir(m.rightLowerLeg),
     rightUpperLeg: mir(m.leftUpperLeg), rightLowerLeg: mir(m.leftLowerLeg),
   };
+  if (m && useFingers) {
+    const fh = hd[fi] || {};
+    let any = false;
+    for (const side of ['left', 'right']) {
+      const src = A.mirror ? (side === 'left' ? 'right' : 'left') : side;
+      const lm = fh[src];
+      if (lm && lm.length === 21) { solveHand(m, lm, side); any = true; }
+    }
+    if (any) handFrames++;
+  }
   SKEL.forEach(([, bone], bi) => {
     let q = m && m[bone] ? eq(m[bone]) : (prev[bone] || [0, 0, 0, 1]);
-    if (bone === 'hips' && A.faceFlip && m && m.hips) q = [q[2], q[3], -q[0], -q[1]]; // (0,1,0,0)*q = Y180·q
+    if (bone === 'hips' && A.faceFlip && m && m.hips) q = [q[2], q[3], -q[0], -q[1]]; // Y180·q
     if (prev[bone] && A.smooth > 0) q = nlerp(prev[bone], q, 1 - A.smooth);
     prev[bone] = q;
     tracks[bi].set(q, k * 4);
@@ -126,4 +170,4 @@ const h = Buffer.alloc(12); h.writeUInt32LE(0x46546c67, 0); h.writeUInt32LE(2, 4
 const jh = Buffer.alloc(8); jh.writeUInt32LE(jsonBuf.length, 0); jh.writeUInt32LE(0x4e4f534a, 4);
 const bh = Buffer.alloc(8); bh.writeUInt32LE(binBuf.length, 0); bh.writeUInt32LE(0x004e4942, 4);
 fs.writeFileSync(A.out, Buffer.concat([h, jh, jsonBuf, bh, binBuf]));
-console.log(JSON.stringify({ engine: 'kalidokit', out: A.out, bytes: fs.statSync(A.out).size, frames: nFrames, bones: SKEL.length, flags: { start: A.start, len, smooth: A.smooth, mirror: A.mirror, flatHips: A.flatHips, legs: A.legs } }));
+console.log(JSON.stringify({ engine: 'kalidokit', out: A.out, bytes: fs.statSync(A.out).size, frames: nFrames, bones: SKEL.length, handFrames, flags: { start: A.start, len, smooth: A.smooth, mirror: A.mirror, flatHips: A.flatHips, faceFlip: A.faceFlip, legs: A.legs, fingers: !!useFingers } }));

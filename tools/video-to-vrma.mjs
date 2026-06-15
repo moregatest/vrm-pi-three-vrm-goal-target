@@ -22,7 +22,7 @@ const TOOLS = path.join(ROOT, 'tools');
 function parseArgs(argv) {
   const a = { outDir: path.join(ROOT, '.vrma-out'), name: 'dance', start: 0, len: 0, fps: 30, vrm: '/avatars/default.vrm', preview: true, python: '', keepFrames: false, contactSheet: true, engine: 'kalidokit', retarget: [] };
   a.input = argv[0] && !argv[0].startsWith('--') ? argv[0] : '';
-  const boolRt = new Set(['--flip-x', '--flip-y', '--flip-z', '--mirror', '--legs', '--hips', '--flat-hips', '--no-legs']);
+  const boolRt = new Set(['--flip-x', '--flip-y', '--flip-z', '--mirror', '--legs', '--hips', '--flat-hips', '--face-flip', '--no-legs', '--no-fingers']);
   const valRt = new Set(['--smooth', '--damp-head', '--damp-spine']);
   for (let i = a.input ? 1 : 0; i < argv.length; i++) {
     const k = argv[i];

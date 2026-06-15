@@ -20,7 +20,7 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const PUBLIC = path.join(ROOT, 'public');
 
 function parseArgs(argv) {
-  const a = { fps: 24, width: 640, height: 800, gif: true, gifWidth: 360, gifFps: 0, contactSheet: false, out: 'preview.mp4', vrm: '/avatars/default.vrm', bg: '#14233a', keepFrames: false, seconds: 0, port: 5181 };
+  const a = { fps: 24, width: 640, height: 800, gif: true, gifWidth: 360, gifFps: 0, contactSheet: false, zoom: 1, aim: null, out: 'preview.mp4', vrm: '/avatars/default.vrm', bg: '#14233a', keepFrames: false, seconds: 0, port: 5181 };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === '--vrma') a.vrma = argv[++i];
@@ -32,6 +32,8 @@ function parseArgs(argv) {
     else if (k === '--height') a.height = Number(argv[++i]);
     else if (k === '--gif-width') a.gifWidth = Number(argv[++i]);
     else if (k === '--gif-fps') a.gifFps = Number(argv[++i]);
+    else if (k === '--zoom') a.zoom = Number(argv[++i]);
+    else if (k === '--aim') a.aim = Number(argv[++i]);
     else if (k === '--bg') a.bg = argv[++i];
     else if (k === '--port') a.port = Number(argv[++i]);
     else if (k === '--no-gif') a.gif = false;
@@ -77,7 +79,7 @@ const CANDS = [
 async function main() {
   const vrmUrl = toPublicUrl(args.vrm, 'vrm');
   const vrmaUrl = toPublicUrl(args.vrma, 'vrma');
-  const appUrl = `http://127.0.0.1:${args.port}/preview.html?vrm=${encodeURIComponent(vrmUrl)}&vrma=${encodeURIComponent(vrmaUrl)}&bg=${encodeURIComponent(args.bg)}`;
+  const appUrl = `http://127.0.0.1:${args.port}/preview.html?vrm=${encodeURIComponent(vrmUrl)}&vrma=${encodeURIComponent(vrmaUrl)}&bg=${encodeURIComponent(args.bg)}&zoom=${args.zoom}${args.aim != null ? '&aim=' + args.aim : ''}`;
 
   procs.push(spawn('npx', ['vite', '--port', String(args.port), '--strictPort', '--host', '127.0.0.1'], { cwd: ROOT, stdio: 'ignore' }));
   await waitHttp(`http://127.0.0.1:${args.port}/`, 'vite');

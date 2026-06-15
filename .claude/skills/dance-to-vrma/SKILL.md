@@ -41,7 +41,7 @@ node tools/render-vrma-preview.mjs --vrma /tmp/try.vrma --vrm /avatars/default.v
 ## Engines & flags (what you tune)
 
 Two retarget engines, pick with `--engine` on `video-to-vrma`:
-- **`kalidokit`** (DEFAULT, recommended) — proper kinematics + limb twist + wrists + legs. Much more expressive arms.
+- **`kalidokit`** (DEFAULT, recommended) — proper kinematics + limb twist + wrists + legs + **fingers** (MediaPipe HandLandmarker + Kalidokit.Hand). Much more expressive arms/hands.
 - **`simple`** — the naive shortest-arc fallback (no twist/wrist), kept as a baseline.
 
 **Kalidokit flags** (`make-vrma-kalidokit.mjs`, also accepted by `video-to-vrma`):
@@ -53,11 +53,12 @@ Two retarget engines, pick with `--engine` on `video-to-vrma`:
 | `--flat-hips` | zero hips yaw | body over-spins / keeps turning away |
 | `--smooth A` | EMA on output quats 0..1 (def 0.3) | raise 0.5–0.7 if jittery; lower ~0.15 if mushy |
 | `--no-legs` | skip legs | legs noisy/occluded and distracting |
+| `--no-fingers` | skip finger solving | hands jitter / fingers not needed |
 | `--start N` `--len N` | pose segment | skip intro/occluded parts; pick the best phrase |
 
 **Simple-engine flags** (`--engine simple`): `--legs`, `--hips`, `--mirror`, `--flip-x/y/z`, `--smooth`, `--damp-head`, `--damp-spine`, `--start/--len`.
 
-Render flags: `--vrm <path|/url>`, `--fps`, `--width/--height`, `--gif-width/--gif-fps`, `--contact-sheet` (on by default in `video-to-vrma`), `--no-gif`.
+Render flags: `--vrm <path|/url>`, `--fps`, `--width/--height`, `--gif-width/--gif-fps`, `--contact-sheet` (on by default in `video-to-vrma`), `--no-gif`, `--zoom`/`--aim` (closer crop). **Fingers are tiny in a full-body sheet** — to check hands, render a second sheet zoomed in, e.g. `--zoom 0.6 --aim 0.85`.
 
 ## Diagnosis → fix (kalidokit, the default)
 
