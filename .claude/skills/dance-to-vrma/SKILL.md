@@ -17,8 +17,11 @@ Full reference: `docs/video-to-vrma-usage.md`. One-time setup is in that doc (§
 
 ```
 1. RUN     node tools/video-to-vrma.mjs <url|file> --out-dir <dir> --name <n> [flags]
-2. OBSERVE Read  <dir>/<n>.contact.png      ← a 4×3 grid of the whole clip
-3. DIAGNOSE compare what you see to the symptom→fix table below
+2. OBSERVE Read <dir>/<n>.contact.png  AND a SOURCE contact sheet of the real dancer
+            (ffmpeg source frames → tile). ALWAYS compare against the target — judging the
+            avatar alone makes you accept wrong motion that merely "looks busy".
+            e.g.: ffmpeg -i src.mp4 -vf "select=not(mod(n\,20)),scale=150:-1,tile=4x4" -frames:v 1 src.png
+3. DIAGNOSE compare avatar-vs-source (match arm/leg positions) to the symptom→fix table below
 4. TUNE    re-run with adjusted flags (see Flags). Re-running is cheap once the
            video is downloaded — pass the SAME --out-dir to reuse it.
 5. REPEAT  until the contact sheet shows a coherent, correctly-oriented, full-body
@@ -40,9 +43,10 @@ node tools/render-vrma-preview.mjs --vrma /tmp/try.vrma --vrm /avatars/default.v
 
 ## Engines & flags (what you tune)
 
-Two retarget engines, pick with `--engine` on `video-to-vrma`:
-- **`kalidokit`** (DEFAULT, recommended) — proper kinematics + limb twist + wrists + legs + **fingers** (MediaPipe HandLandmarker + Kalidokit.Hand). Much more expressive arms/hands.
-- **`simple`** — the naive shortest-arc fallback (no twist/wrist), kept as a baseline.
+Three retarget engines, pick with `--engine` on `video-to-vrma`:
+- **`hybrid`** (DEFAULT) — geometric body (tracks arm/leg **positions** + correct facing, self-consistent with our rig) + **Kalidokit fingers** (MediaPipe HandLandmarker). Most reliable on real footage.
+- **`simple`** — same geometric body, no fingers.
+- **`kalidokit`** — full Kalidokit body (adds limb twist) BUT its rotations assume a VRM-normalized bone-axis our hand-built rig doesn't match → **arms shoot overhead**. Avoid unless you fix the rig axes.
 
 **Kalidokit flags** (`make-vrma-kalidokit.mjs`, also accepted by `video-to-vrma`):
 

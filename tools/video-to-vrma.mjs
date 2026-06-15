@@ -20,7 +20,7 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const TOOLS = path.join(ROOT, 'tools');
 
 function parseArgs(argv) {
-  const a = { outDir: path.join(ROOT, '.vrma-out'), name: 'dance', start: 0, len: 0, fps: 30, vrm: '/avatars/default.vrm', preview: true, python: '', keepFrames: false, contactSheet: true, engine: 'kalidokit', retarget: [] };
+  const a = { outDir: path.join(ROOT, '.vrma-out'), name: 'dance', start: 0, len: 0, fps: 30, vrm: '/avatars/default.vrm', preview: true, python: '', keepFrames: false, contactSheet: true, engine: 'hybrid', retarget: [] };
   a.input = argv[0] && !argv[0].startsWith('--') ? argv[0] : '';
   const boolRt = new Set(['--flip-x', '--flip-y', '--flip-z', '--mirror', '--legs', '--hips', '--flat-hips', '--face-flip', '--no-legs', '--no-fingers']);
   const valRt = new Set(['--smooth', '--damp-head', '--damp-spine']);
@@ -98,7 +98,7 @@ console.log(`pose: ${poseInfo.detected}/${poseInfo.frames} frames detected`);
 
 // 4) retarget → .vrma
 const len = args.len > 0 ? args.len : (poseInfo.frames - args.start);
-const engineScript = args.engine === 'simple' ? 'make-vrma-from-pose.mjs' : 'make-vrma-kalidokit.mjs';
+const engineScript = ({ simple: 'make-vrma-from-pose.mjs', kalidokit: 'make-vrma-kalidokit.mjs', hybrid: 'make-vrma-hybrid.mjs' })[args.engine] || 'make-vrma-hybrid.mjs';
 console.log(`retarget engine: ${args.engine} (${engineScript})`);
 const vrmaOutLog = run('node', [path.join(TOOLS, engineScript), poseJson, vrmaOut, '--start', String(args.start), '--len', String(len), ...args.retarget], { capture: true });
 process.stdout.write(vrmaOutLog);
