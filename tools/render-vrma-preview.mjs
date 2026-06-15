@@ -20,7 +20,7 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const PUBLIC = path.join(ROOT, 'public');
 
 function parseArgs(argv) {
-  const a = { fps: 24, width: 640, height: 800, gif: true, gifWidth: 360, gifFps: 0, out: 'preview.mp4', vrm: '/avatars/default.vrm', bg: '#14233a', keepFrames: false, seconds: 0, port: 5181 };
+  const a = { fps: 24, width: 640, height: 800, gif: true, gifWidth: 360, gifFps: 0, contactSheet: false, out: 'preview.mp4', vrm: '/avatars/default.vrm', bg: '#14233a', keepFrames: false, seconds: 0, port: 5181 };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === '--vrma') a.vrma = argv[++i];
@@ -35,6 +35,7 @@ function parseArgs(argv) {
     else if (k === '--bg') a.bg = argv[++i];
     else if (k === '--port') a.port = Number(argv[++i]);
     else if (k === '--no-gif') a.gif = false;
+    else if (k === '--contact-sheet') a.contactSheet = true;
     else if (k === '--keep-frames') a.keepFrames = true;
   }
   if (!a.vrma) { console.error('error: --vrma is required'); process.exit(2); }
@@ -129,6 +130,18 @@ async function main() {
     if (g.status !== 0) gifPath = null;
   }
 
+  // contact sheet: 12 evenly-spaced frames tiled into ONE png, so an AI can judge the
+  // whole motion from a single static image (the Read tool only sees frame 0 of a gif).
+  let contactPath = null;
+  if (args.contactSheet) {
+    contactPath = out.replace(/\.[^.]+$/, '') + '.contact.png';
+    const step = Math.max(1, Math.floor((N - 1) / 11));
+    const c = spawnSync('ffmpeg', ['-y', '-i', path.join(framesDir, '%05d.png'),
+      '-vf', `select='not(mod(n,${step}))',scale=240:-1,tile=4x3:padding=6:color=0x14233a`,
+      '-frames:v', '1', '-fps_mode', 'passthrough', contactPath], { stdio: 'ignore' });
+    if (c.status !== 0 || !fs.existsSync(contactPath)) contactPath = null;
+  }
+
   if (!args.keepFrames) fs.rmSync(framesDir, { recursive: true, force: true });
 
   const summary = {
@@ -136,6 +149,7 @@ async function main() {
     durationSec: Number(dur.toFixed(2)), width: args.width, height: args.height, animated,
     mp4: out, mp4Bytes: fs.existsSync(out) ? fs.statSync(out).size : 0,
     gif: gifPath, gifBytes: gifPath && fs.existsSync(gifPath) ? fs.statSync(gifPath).size : 0,
+    contactSheet: contactPath, contactBytes: contactPath && fs.existsSync(contactPath) ? fs.statSync(contactPath).size : 0,
     framesDir: args.keepFrames ? framesDir : null,
   };
   console.log(JSON.stringify(summary, null, 2));

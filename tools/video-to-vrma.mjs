@@ -20,8 +20,10 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const TOOLS = path.join(ROOT, 'tools');
 
 function parseArgs(argv) {
-  const a = { outDir: path.join(ROOT, '.vrma-out'), name: 'dance', start: 0, len: 0, fps: 30, vrm: '/avatars/default.vrm', preview: true, python: '', keepFrames: false };
+  const a = { outDir: path.join(ROOT, '.vrma-out'), name: 'dance', start: 0, len: 0, fps: 30, vrm: '/avatars/default.vrm', preview: true, python: '', keepFrames: false, contactSheet: true, retarget: [] };
   a.input = argv[0] && !argv[0].startsWith('--') ? argv[0] : '';
+  const boolRt = new Set(['--flip-x', '--flip-y', '--flip-z', '--mirror', '--legs', '--hips']);
+  const valRt = new Set(['--smooth', '--damp-head', '--damp-spine']);
   for (let i = a.input ? 1 : 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === '--out-dir') a.outDir = path.resolve(argv[++i]);
@@ -32,7 +34,10 @@ function parseArgs(argv) {
     else if (k === '--vrm') a.vrm = argv[++i];
     else if (k === '--python') a.python = argv[++i];
     else if (k === '--no-preview') a.preview = false;
+    else if (k === '--no-contact-sheet') a.contactSheet = false;
     else if (k === '--keep-frames') a.keepFrames = true;
+    else if (boolRt.has(k)) a.retarget.push(k);                 // retarget tuning → make-vrma-from-pose
+    else if (valRt.has(k)) a.retarget.push(k, argv[++i]);
   }
   return a;
 }
@@ -92,13 +97,13 @@ console.log(`pose: ${poseInfo.detected}/${poseInfo.frames} frames detected`);
 
 // 4) retarget → .vrma
 const len = args.len > 0 ? args.len : (poseInfo.frames - args.start);
-const vrmaOutLog = run('node', [path.join(TOOLS, 'make-vrma-from-pose.mjs'), poseJson, vrmaOut, String(args.start), String(len)], { capture: true });
+const vrmaOutLog = run('node', [path.join(TOOLS, 'make-vrma-from-pose.mjs'), poseJson, vrmaOut, '--start', String(args.start), '--len', String(len), ...args.retarget], { capture: true });
 process.stdout.write(vrmaOutLog);
 
 // 5) preview
 let preview = null;
 if (args.preview) {
-  const pv = run('node', [path.join(TOOLS, 'render-vrma-preview.mjs'), '--vrma', vrmaOut, '--vrm', args.vrm, '--out', previewOut], { capture: true });
+  const pv = run('node', [path.join(TOOLS, 'render-vrma-preview.mjs'), '--vrma', vrmaOut, '--vrm', args.vrm, '--out', previewOut, ...(args.contactSheet ? ['--contact-sheet'] : [])], { capture: true });
   process.stdout.write(pv);
   try { const i = pv.indexOf('{'), j = pv.lastIndexOf('}'); if (i >= 0 && j > i) preview = JSON.parse(pv.slice(i, j + 1)); } catch {}
 }
@@ -108,7 +113,7 @@ if (!args.keepFrames) fs.rmSync(framesDir, { recursive: true, force: true });
 console.log('\n=== DONE ===');
 console.log(JSON.stringify({
   input: args.input, vrma: vrmaOut, vrmaBytes: fs.existsSync(vrmaOut) ? fs.statSync(vrmaOut).size : 0,
-  preview: preview ? { mp4: preview.mp4, gif: preview.gif, animated: preview.animated, frames: preview.frames } : 'skipped',
+  preview: preview ? { mp4: preview.mp4, gif: preview.gif, contactSheet: preview.contactSheet, animated: preview.animated, frames: preview.frames } : 'skipped',
   poseDetected: `${poseInfo.detected}/${poseInfo.frames}`,
   licensing: isUrl ? 'LOCAL ONLY — derived from remote video' : 'check your input video license',
 }, null, 2));

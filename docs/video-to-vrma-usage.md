@@ -101,14 +101,57 @@ node proof-g.mjs        # (既有)程式化 .vrma 被 runtime 載入 + 播放
 
 ---
 
-## 5. 授權(重要)
+## 5. AI 最佳化迴圈(observe & tune)— 專案技能 `dance-to-vrma`
+
+把生成的動作「看著調到好」。CLI 會輸出一張 **contact sheet**(整段動作均勻取樣→單張 PNG),
+AI 用 `Read` 看這張靜圖判讀整段動作品質(GIF 對 Read 只看得到第一幀),再依結果調 flags
+重跑,反覆到最佳。完整可載入流程見技能 `.claude/skills/dance-to-vrma/SKILL.md`。
+
+迴圈:`跑 video-to-vrma → Read <name>.contact.png → 對照下表診斷 → 調 flags 重跑(同 --out-dir 重用已下載影片)→ 重複 → 好了給使用者 .gif/.mp4`。
+
+範例 contact sheet(合成動作示範,12 格 = 整段動作):
+
+![contact sheet demo](images/contact-sheet-demo.png)
+
+### retarget 調整 flags(`video-to-vrma` / `make-vrma-from-pose` 共用)
+
+| flag | 效果 | 何時用 |
+|---|---|---|
+| `--legs` | 連腿一起 retarget | 腿僵直不動 |
+| `--hips` | 套用 hips 轉身 | 身體都不轉、太死板正面 |
+| `--mirror` | 左右對調 | 動作左右相反 |
+| `--flip-x` / `--flip-y` / `--flip-z` | 翻座標軸 | 整個人面向錯/上下顛倒 |
+| `--smooth A` | 方向 EMA(預設 0.4) | 抖→調高 0.6;糊→調低 0.25 |
+| `--damp-head F` | 頭部強度(預設 0.4) | 頭甩太兇→調低 |
+| `--damp-spine F` | 軀幹強度(預設 0.7) | 身體前傾過頭→調低 |
+| `--start` / `--len` | 取樣區間 | 跳過遮擋/挑最好段落 |
+| `--contact-sheet` | 輸出 contact sheet PNG | `video-to-vrma` 預設開;`--no-contact-sheet` 關 |
+
+### 診斷 → 對策
+
+| 在 contact sheet 看到 | 對策 |
+|---|---|
+| 腿整段僵直 | `--legs` |
+| 身體永遠正面、很死板 | `--hips` |
+| 動作跟影片左右相反 | `--mirror` |
+| 角色背對 / 面向錯 | `--flip-z`(不對再試 `--flip-x`) |
+| 上下顛倒 / 陷進地板 | `--flip-y` |
+| 逐幀抖動 | `--smooth 0.6` |
+| 動作糊掉 / 失拍 | `--smooth 0.25` |
+| 頭亂甩 | `--damp-head 0.2` |
+| 軀幹彎太多 | `--damp-spine 0.4` |
+| 某肢亂飛 | 該段遮擋,換 `--start/--len` |
+
+---
+
+## 6. 授權(重要)
 
 - 用**他人影片**(如 YouTube 短片)產出的 `source.*`、`pose.json`、`.vrma`、預覽 **只供本機技術用途,勿散佈/商用**——影片著作權、編舞著作權、被攝者權利都可能涉及。本工具對 URL 輸入會印出 `LOCAL ONLY` 警告,且 `./.vrma-out/` 與 `__preview_tmp_*` 已列入 `.gitignore`。
 - **可入庫/可商用**的素材請用:自製合成動作、自行拍攝、或 CC0/授權影片。`docs/images/preview-demo.*` 即為此類(合成 + MIT VRM)。
 
 ---
 
-## 6. 疑難排解
+## 7. 疑難排解
 
 | 症狀 | 解法 |
 |---|---|
