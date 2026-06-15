@@ -19,6 +19,18 @@
       "cooldownMs": 1500,
       "runtimeHints": { "lookAtMode": "camera", "expression": "happy", "expressionWeight": 0.6 }
     },
+    {
+      "id": "generated_dance",
+      "source": { "kind": "vrma", "file": "/vrma/generated_demo.vrma" },
+      "category": "gesture",
+      "tags": ["dance", "generated"],
+      "emotion": "neutral",
+      "intensity": { "min": 0, "max": 1 },
+      "durationMs": 3000,
+      "loop": false,
+      "priority": 55,
+      "blend": { "inMs": 200, "outMs": 400 }
+    },
     { "id": "idle_breath_normal", "source": { "kind": "procedural", "generator": "idle" }, "category": "idle", "tags": ["idle", "breath"], "emotion": "neutral", "durationMs": 3600, "loop": true, "priority": 10 },
     { "id": "idle_happy_sway_01", "source": { "kind": "procedural", "generator": "idle", "params": { "periodMs": 2800 } }, "category": "idle", "tags": ["idle", "sway"], "emotion": "happy", "durationMs": 4200, "loop": true, "priority": 10 },
     { "id": "idle_look_around_01", "source": { "kind": "procedural", "generator": "gaze" }, "category": "idle", "tags": ["idle", "look"], "emotion": "neutral", "durationMs": 5000, "loop": true, "priority": 10 },

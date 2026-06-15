@@ -12,11 +12,13 @@ proofs/handless-run/
 /proof-d-screenshot.png
 /proof-e-screenshot.png
 /proof-f-screenshot.png
+/proof-g-screenshot.png
 /events.proof-a.jsonl
 /events.proof-b.jsonl
 /events.proof-d.jsonl
 /events.proof-e.jsonl
 /events.proof-f.jsonl
+/events.proof-g.jsonl
 /events.handless.jsonl
 /proof-b-output.txt
 /proof-b-pi-stdout.jsonl
@@ -28,3 +30,12 @@ public/avatars/user-avatar.vrm
 
 # macOS
 .DS_Store
+
+# video-derived artifacts (copyright) — local PoC only, never published
+public/vrma/dance_real.vrma
+proof-realvideo-screenshot.png
+
+# video-to-vrma working dir + preview temp copies (video-derived → local only)
+/.vrma-out/
+public/vrma/__preview_tmp_*
+public/avatars/__preview_tmp_*

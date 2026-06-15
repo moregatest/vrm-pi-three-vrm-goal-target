@@ -408,7 +408,8 @@ export class MotionController {
     if (chest) chest.rotation.x += breath;
     this.updateGaze(dt, now);
     if (head) { head.rotation.x += this.gazePitch * 0.4 + noise(t * 0.6) * 0.008; head.rotation.y += this.gazeYaw * 0.4; }
-    this.poseSignature = (head?.rotation.x ?? 0) * 1000 + (head?.rotation.y ?? 0) * 1000 + (spine?.rotation.x ?? 0) * 1000;
+    this.poseSignature = (head?.rotation.x ?? 0) * 1000 + (head?.rotation.y ?? 0) * 1000 + (spine?.rotation.x ?? 0) * 1000
+      + (this.bones['rightUpperArm']?.rotation.z ?? 0) * 1000 + (this.bones['leftUpperArm']?.rotation.z ?? 0) * 1000;
   }
 
   private updatePose(dt: number, now: number): void {

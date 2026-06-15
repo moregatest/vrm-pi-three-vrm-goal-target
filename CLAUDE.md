@@ -115,6 +115,8 @@ bash proofs/setup-handless.sh && node proof-c.mjs  # handless-termal ht run-roun
 node proof-d.mjs                                   # runtime VRM swap, still renders
 node proof-e.mjs                                   # ALIVENESS: idle micro-motion, blink, expression ramp, action blend, viseme mouth
 node proof-f.mjs                                   # VRMA LAYER: real .vrma loaded+played, >=3 procedural, idle-before-event, agent wave→vrma
+node proof-g.mjs                                   # GENERATED .vrma: programmatic clip loaded+played by the runtime
+node proof-h.mjs                                   # PREVIEW: render .vrma+VRM → MP4/GIF (synthetic demo, committable)
 ( cd src-tauri && cargo test )                     # rules-engine unit tests (5)
 ```
 
@@ -127,3 +129,5 @@ Needs the Rust toolchain (`rustup`; ensure `~/.cargo/bin` is on PATH for `cargo`
 ## Design / spec
 
 `docs/superpowers/specs/2026-06-14-standalone-vrm-desktop-pet-design.md`. The original PoC's asset license is in `README.md` / `ASSET_LICENSE.txt`.
+
+**Dance-video → VRMA pipeline:** `docs/dance-video-to-vrma-plan.md` — research (cited) + a working PoC. `tools/make-vrma.mjs` programmatically writes a valid `.vrma` from per-bone keyframes (synthetic dance → `public/vrma/generated_demo.vrma`, the committable `generated_dance` clip), verified by `proof-g.mjs`. `tools/extract_pose.py` (MediaPipe) + `tools/make-vrma-from-pose.mjs` close the real loop (video → pose → retarget → `.vrma`); video-derived outputs are **gitignored** for licensing. A Mac CLI wraps it end-to-end — `tools/video-to-vrma.mjs <url|file>` → `.vrma` + a rendered **preview** (`tools/render-vrma-preview.mjs`: headless three-vrm steps the clip frame-by-frame → MP4/GIF). Usage: `docs/video-to-vrma-usage.md`; verified by `proof-h.mjs` (committable demo `docs/images/preview-demo.gif`).
