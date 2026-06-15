@@ -90,6 +90,14 @@ mirroring, smooth (no jitter), recognizable as the source dance. Then deliver
 Drop the tuned `.vrma` into `public/vrma/` and add one entry to `public/vrma/clips.json`
 (`source.kind: "vrma"`); the runtime auto-loads it (see `docs/dance-video-to-vrma-plan.md` §6).
 
+## Higher quality than local allows (GPU / Colab)
+
+Free/local (MediaPipe) tops out at position-based motion — **no limb twist**. For twist +
+robust depth, go GPU via cloud: run `colab/dance_to_smpl.ipynb` (Colab GPU, ROMP; WHAM/GVHMR
+for best) → download `smpl.json` → `node tools/smpl-to-vrma.mjs smpl.json out.vrma --face-flip`
+→ preview + tune coord flags (`--flip-x/-y/-z`, `--face-flip`, `--smooth`) against the source
+(SMPL→VRM coord usually needs one tuning pass). See `docs/video-to-vrma-usage.md` §8.
+
 ## Licensing (must respect)
 
 Output derived from someone else's video (e.g. a YouTube short) is for **local use only** —
