@@ -20,9 +20,9 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const TOOLS = path.join(ROOT, 'tools');
 
 function parseArgs(argv) {
-  const a = { outDir: path.join(ROOT, '.vrma-out'), name: 'dance', start: 0, len: 0, fps: 30, vrm: '/avatars/default.vrm', preview: true, python: '', keepFrames: false, contactSheet: true, retarget: [] };
+  const a = { outDir: path.join(ROOT, '.vrma-out'), name: 'dance', start: 0, len: 0, fps: 30, vrm: '/avatars/default.vrm', preview: true, python: '', keepFrames: false, contactSheet: true, engine: 'kalidokit', retarget: [] };
   a.input = argv[0] && !argv[0].startsWith('--') ? argv[0] : '';
-  const boolRt = new Set(['--flip-x', '--flip-y', '--flip-z', '--mirror', '--legs', '--hips']);
+  const boolRt = new Set(['--flip-x', '--flip-y', '--flip-z', '--mirror', '--legs', '--hips', '--flat-hips', '--no-legs']);
   const valRt = new Set(['--smooth', '--damp-head', '--damp-spine']);
   for (let i = a.input ? 1 : 0; i < argv.length; i++) {
     const k = argv[i];
@@ -35,6 +35,7 @@ function parseArgs(argv) {
     else if (k === '--python') a.python = argv[++i];
     else if (k === '--no-preview') a.preview = false;
     else if (k === '--no-contact-sheet') a.contactSheet = false;
+    else if (k === '--engine') a.engine = argv[++i];           // kalidokit (default) | simple
     else if (k === '--keep-frames') a.keepFrames = true;
     else if (boolRt.has(k)) a.retarget.push(k);                 // retarget tuning → make-vrma-from-pose
     else if (valRt.has(k)) a.retarget.push(k, argv[++i]);
@@ -97,7 +98,9 @@ console.log(`pose: ${poseInfo.detected}/${poseInfo.frames} frames detected`);
 
 // 4) retarget → .vrma
 const len = args.len > 0 ? args.len : (poseInfo.frames - args.start);
-const vrmaOutLog = run('node', [path.join(TOOLS, 'make-vrma-from-pose.mjs'), poseJson, vrmaOut, '--start', String(args.start), '--len', String(len), ...args.retarget], { capture: true });
+const engineScript = args.engine === 'simple' ? 'make-vrma-from-pose.mjs' : 'make-vrma-kalidokit.mjs';
+console.log(`retarget engine: ${args.engine} (${engineScript})`);
+const vrmaOutLog = run('node', [path.join(TOOLS, engineScript), poseJson, vrmaOut, '--start', String(args.start), '--len', String(len), ...args.retarget], { capture: true });
 process.stdout.write(vrmaOutLog);
 
 // 5) preview

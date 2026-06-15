@@ -54,7 +54,7 @@ def main():
     opts = vision.PoseLandmarkerOptions(
         base_options=python.BaseOptions(model_asset_path=get_model(model)),
         running_mode=vision.RunningMode.VIDEO, num_poses=1)
-    out, last, det = [], None, 0
+    out, out2d, last, last2d, det = [], [], None, None, 0
     with vision.PoseLandmarker.create_from_options(opts) as lm:
         for i, f in enumerate(frames):
             img = mp.Image.create_from_file(f)
@@ -62,9 +62,13 @@ def main():
             if res.pose_world_landmarks:
                 last = [[round(p.x, 4), round(p.y, 4), round(p.z, 4), round(getattr(p, "visibility", 1.0), 3)]
                         for p in res.pose_world_landmarks[0]]
+                if res.pose_landmarks:   # normalized image-space coords (needed by Kalidokit)
+                    last2d = [[round(p.x, 4), round(p.y, 4), round(p.z, 4), round(getattr(p, "visibility", 1.0), 3)]
+                              for p in res.pose_landmarks[0]]
                 det += 1
             out.append(last if last is not None else [[0, 0, 0, 0]] * 33)
-    json.dump({"fps": 30, "start": start, "frames": len(out), "detected": det, "landmarks": out}, open(out_json, "w"))
+            out2d.append(last2d if last2d is not None else [[0, 0, 0, 0]] * 33)
+    json.dump({"fps": 30, "start": start, "frames": len(out), "detected": det, "landmarks": out, "landmarks2d": out2d}, open(out_json, "w"))
     print(json.dumps({"frames": len(out), "detected": det, "out": out_json}))
 
 

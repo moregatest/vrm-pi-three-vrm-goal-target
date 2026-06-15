@@ -33,40 +33,46 @@ Iterating only on the retarget (after the first run) is much faster — call the
 inner tools directly on the existing `<dir>/<n>.pose.json`:
 
 ```
-node tools/make-vrma-from-pose.mjs <dir>/<n>.pose.json /tmp/try.vrma --start 180 --len 120 --legs --hips
+node tools/make-vrma-kalidokit.mjs <dir>/<n>.pose.json /tmp/try.vrma --start 180 --len 120 --face-flip
 node tools/render-vrma-preview.mjs --vrma /tmp/try.vrma --vrm /avatars/default.vrm --out /tmp/try.mp4 --contact-sheet
 # then: Read /tmp/try.contact.png
 ```
 
-## Flags (retarget — what you tune)
+## Engines & flags (what you tune)
+
+Two retarget engines, pick with `--engine` on `video-to-vrma`:
+- **`kalidokit`** (DEFAULT, recommended) — proper kinematics + limb twist + wrists + legs. Much more expressive arms.
+- **`simple`** — the naive shortest-arc fallback (no twist/wrist), kept as a baseline.
+
+**Kalidokit flags** (`make-vrma-kalidokit.mjs`, also accepted by `video-to-vrma`):
 
 | flag | effect | when to use |
 |---|---|---|
-| `--legs` | retarget upper/lower legs too | legs look frozen/straight (dances use legs) |
-| `--hips` | apply hip yaw (body turns) | body never turns / looks too stiff & frontal |
-| `--mirror` | swap left/right landmarks | the dance is left-right reversed |
-| `--flip-x` / `--flip-y` / `--flip-z` | flip a coordinate axis | whole body faces wrong way / upside-down |
-| `--smooth A` | EMA on directions, 0..1 (def 0.4) | raise (0.5–0.7) if jittery; lower (0.2–0.3) if mushy |
-| `--damp-head F` | head strength 0..1 (def 0.4) | lower if the head whips around |
-| `--damp-spine F` | spine/chest strength 0..1 (def 0.7) | lower if the torso over-leans |
-| `--start N` `--len N` | which frames of the pose to use | skip intro/occluded parts; pick the best phrase |
+| `--face-flip` | rotate whole avatar 180° about Y | avatar faces **away/back** — common for 3rd-person video (Kalidokit assumes selfie facing) |
+| `--mirror` | un-mirror (swap L/R + flip yaw/roll) | moves are left-right reversed vs the video |
+| `--flat-hips` | zero hips yaw | body over-spins / keeps turning away |
+| `--smooth A` | EMA on output quats 0..1 (def 0.3) | raise 0.5–0.7 if jittery; lower ~0.15 if mushy |
+| `--no-legs` | skip legs | legs noisy/occluded and distracting |
+| `--start N` `--len N` | pose segment | skip intro/occluded parts; pick the best phrase |
 
-Render flags: `--vrm <path|/url>` (avatar), `--fps`, `--width/--height`, `--gif-width/--gif-fps`, `--contact-sheet` (on by default in `video-to-vrma`), `--no-gif`.
+**Simple-engine flags** (`--engine simple`): `--legs`, `--hips`, `--mirror`, `--flip-x/y/z`, `--smooth`, `--damp-head`, `--damp-spine`, `--start/--len`.
 
-## Diagnosis → fix
+Render flags: `--vrm <path|/url>`, `--fps`, `--width/--height`, `--gif-width/--gif-fps`, `--contact-sheet` (on by default in `video-to-vrma`), `--no-gif`.
+
+## Diagnosis → fix (kalidokit, the default)
 
 | what you SEE in the contact sheet | fix |
 |---|---|
-| legs straight/frozen the whole time | add `--legs` |
-| body always faces front, feels rigid | add `--hips` |
-| moves are left-right reversed vs the video | add `--mirror` |
-| character faces away / backwards | `--flip-z` (try `--flip-x` if that's wrong) |
-| character upside-down or sunk into floor | `--flip-y` |
-| arms/legs jitter frame-to-frame | raise `--smooth` to 0.6 |
-| motion looks blurred / loses the beat | lower `--smooth` to 0.25 |
-| head snaps around unnaturally | lower `--damp-head` to ~0.2 |
-| torso bends over too far | lower `--damp-spine` to ~0.4 |
-| one limb flails / a segment is broken | that span is occluded — change `--start/--len` to another phrase |
+| avatar faces **away / back** | `--face-flip` |
+| body over-spins / keeps turning away | `--flat-hips` |
+| moves are left-right reversed vs the video | `--mirror` |
+| arms/legs jitter frame-to-frame | raise `--smooth` to 0.5–0.7 |
+| motion mushy / loses the beat | lower `--smooth` to ~0.15 |
+| legs noisy / distracting | `--no-legs` |
+| one limb flails / a segment is broken | that span is occluded — change `--start/--len` |
+| arms look stiff / no twist | you're on `--engine simple` → use kalidokit (default) |
+
+(Simple engine extras: legs frozen → `--legs`; too frontal/rigid → `--hips`; wrong facing → `--flip-z`/`--flip-x`; upside-down → `--flip-y`.)
 
 ## Stop when
 
@@ -89,10 +95,14 @@ self-made or licensed/CC0 source video.
 ## Example session
 
 ```
-# round 1 — baseline
-node tools/video-to-vrma.mjs 'https://youtube.com/shorts/XXXX' --out-dir .vrma-out --name d1 --start 180 --len 120
-# → Read .vrma-out/d1.contact.png → "legs frozen, body too frontal"
-# round 2 — tune (reuse downloaded video via same --out-dir)
-node tools/video-to-vrma.mjs 'https://youtube.com/shorts/XXXX' --out-dir .vrma-out --name d2 --start 180 --len 120 --legs --hips
-# → Read .vrma-out/d2.contact.png → full-body dance ✓ → deliver d2.gif
+# round 1 — baseline (kalidokit is the default engine)
+node tools/video-to-vrma.mjs 'https://youtube.com/shorts/XXXX' --out-dir .vrma-out --name d1 --start 30 --len 150
+# → Read .vrma-out/d1.contact.png → "avatar faces away / back"
+# round 2 — tune fast on the kept pose.json (no re-download), then re-render
+node tools/make-vrma-kalidokit.mjs .vrma-out/d1.pose.json /tmp/d2.vrma --start 30 --len 150 --face-flip
+node tools/render-vrma-preview.mjs --vrma /tmp/d2.vrma --vrm /avatars/default.vrm --out /tmp/d2.mp4 --contact-sheet
+# → Read /tmp/d2.contact.png → front-facing, expressive arms ✓ → deliver
 ```
+
+> Real example (this repo): the example short needed exactly `--face-flip` — Kalidokit's
+> selfie-facing convention put the avatar's back to camera; one flag fixed it.
